@@ -5,13 +5,14 @@ It works as a simple browser-based database with:
 
 - one editable table for jobs
 - one editable table for apartments
-- automatic map placement for known Australian locations
+- automatic map placement from a local Australian city/town database
+- a real satellite map view of Australia
 - a small dashboard for counts, average pay/rent, and best estimated net option
 - JSON export/import for easy backup and editing
 
 ## How to run
 
-Open `index.html` directly in a browser, or serve the folder locally:
+Serve the folder locally:
 
 ```bash
 python3 -m http.server 4173
@@ -22,6 +23,10 @@ Then open:
 ```text
 http://localhost:4173
 ```
+
+The satellite map uses online Leaflet and Esri tile resources, so it needs an
+internet connection. The city/town matching database is local and is included in
+`data/australia-places.js`.
 
 ## How to use
 
@@ -39,22 +44,32 @@ http://localhost:4173
    - bedrooms
    - link
    - notes
-3. Locations are mapped automatically when they match a known Australian city,
-   suburb, state, or territory in `app.js`.
+3. Locations are mapped automatically when they match an Australian city, town,
+   or populated place in `data/australia-places.js`. For ambiguous names, add
+   the state/territory abbreviation, for example `Richmond VIC` or `Richmond NSW`.
 4. Use **Export JSON** to save your data.
 5. Use **Import JSON** to load a saved database.
 
 The data is also saved automatically in browser local storage, so edits remain
 available when you reopen the page in the same browser.
 
-## Supported map locations
+## Location database
 
-The app includes common Australian cities and suburbs such as Sydney, Melbourne,
-Brisbane, Perth, Adelaide, Hobart, Darwin, Canberra, Gold Coast, Newcastle,
-Wollongong, Geelong, Cairns, Townsville, Sunshine Coast, Toowoomba, Ballarat,
-Bendigo, Alice Springs, Launceston, Fremantle, Parramatta, Bondi, Newtown,
-St Kilda, Carlton, Southbank, Docklands, Fortitude Valley, South Brisbane,
-Northbridge, Subiaco, and Chatswood.
+The app includes 19,234 Australian populated-place records generated from the
+GeoNames Australia dump. Each record stores:
 
-To add more automatic placements, extend the `CITY_COORDS` array in `app.js`
-with aliases, latitude, longitude, and display label.
+- name
+- state/territory abbreviation
+- latitude
+- longitude
+- population when available
+- GeoNames feature code
+
+To refresh or expand the database, regenerate `data/australia-places.js` from a
+current GeoNames AU export and keep the same `window.AUSTRALIA_PLACES` format.
+
+## Attribution
+
+- Location data: GeoNames, licensed under Creative Commons Attribution 4.0.
+- Satellite tiles: Esri World Imagery.
+- Interactive map: Leaflet.

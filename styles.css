@@ -238,122 +238,79 @@ main {
   min-height: 550px;
   border: 1px solid #cfdaec;
   border-radius: 1rem;
-  background:
-    radial-gradient(circle at 63% 42%, rgba(255, 255, 255, 0.95), transparent 18rem),
-    linear-gradient(135deg, #dcecff 0%, #f8fbff 48%, #e9f2ff 100%);
+  background: #142033;
 }
 
-.australia-svg,
-.map-grid,
-.marker-layer {
-  position: absolute;
-  inset: 0;
-}
-
-.australia-svg {
+.satellite-map {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 16px 28px rgba(48, 84, 122, 0.18));
+  min-height: 550px;
+  z-index: 1;
 }
 
-.land {
-  fill: #d9ead3;
-  stroke: #8cbf7e;
-  stroke-width: 5;
-}
-
-.land-detail {
-  fill: #d9ead3;
-  stroke: #8cbf7e;
-  stroke-width: 4;
-}
-
-.state-line {
-  fill: none;
-  stroke: rgba(85, 124, 82, 0.42);
-  stroke-dasharray: 8 8;
-  stroke-width: 3;
-}
-
-.map-grid {
-  background-image:
-    linear-gradient(rgba(33, 102, 209, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(33, 102, 209, 0.07) 1px, transparent 1px);
-  background-size: 12.5% 12.5%;
-  pointer-events: none;
-}
-
-.marker-layer {
+.map-fallback {
+  position: absolute;
+  inset: 1rem;
   z-index: 2;
-}
-
-.marker-wrap {
-  position: absolute;
-  width: 1rem;
-  height: 1rem;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.marker-wrap:hover {
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.marker {
-  position: absolute;
   display: grid;
-  width: 1rem;
-  height: 1rem;
+  place-items: center;
+  padding: 1.5rem;
+  border-radius: 0.9rem;
+  background: rgba(20, 32, 51, 0.88);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.leaflet-container {
+  font: inherit;
+  background: #142033;
+}
+
+.leaflet-control-attribution {
+  font-size: 0.68rem;
+}
+
+.custom-pin {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
   border: 2px solid #fff;
   border-radius: 50% 50% 50% 0;
-  box-shadow: 0 8px 18px rgba(23, 32, 51, 0.28);
-  transform: translate(-50%, -100%) rotate(-45deg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38);
+  transform: rotate(-45deg);
 }
 
-.marker::after {
+.custom-pin::after {
   content: "";
   place-self: center;
-  width: 0.32rem;
-  height: 0.32rem;
+  width: 0.42rem;
+  height: 0.42rem;
   border-radius: 999px;
   background: #fff;
 }
 
-.marker.job {
+.custom-pin.job {
   background: var(--job);
 }
 
-.marker.apartment {
+.custom-pin.apartment {
   background: var(--apartment);
 }
 
-.marker-label {
-  position: absolute;
-  min-width: max-content;
-  max-width: 13rem;
-  padding: 0.32rem 0.5rem;
-  border-radius: 0.55rem;
-  background: rgba(23, 32, 51, 0.9);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.25;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -2.4rem);
-  transition: opacity 120ms ease;
+.marker-popup {
+  min-width: 13rem;
+  color: var(--text);
 }
 
-.marker-wrap:hover .marker-label,
-.marker-wrap:focus-within .marker-label {
-  opacity: 1;
+.marker-popup strong {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.marker-popup span {
+  color: var(--muted);
 }
 
 .map-note {
@@ -475,12 +432,12 @@ td textarea:focus {
     min-height: 420px;
   }
 
+  .satellite-map {
+    min-height: 420px;
+  }
+
   button,
   .button-secondary {
     width: 100%;
-  }
-
-  .marker-wrap {
-    width: 1rem;
   }
 }
