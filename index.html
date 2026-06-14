@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Australia Job & Apartment Analytics</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Editable data sheet + map</p>
+        <h1>Australia job and apartment analytics</h1>
+        <p class="hero-copy">
+          Compare hourly paid jobs and apartment rent by location. Edit the tables,
+          and matching Australian locations are placed automatically on the map.
+        </p>
+      </div>
+      <div class="hero-actions" aria-label="Data controls">
+        <button id="exportData" type="button">Export JSON</button>
+        <label class="button-secondary" for="importData">Import JSON</label>
+        <input id="importData" type="file" accept="application/json" hidden />
+        <button id="resetData" class="button-ghost" type="button">Reset demo data</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="dashboard" aria-label="Dashboard summary">
+        <article class="card">
+          <span class="card-label">Jobs tracked</span>
+          <strong id="jobCount">0</strong>
+          <small id="avgHourly">Average hourly pay: $0</small>
+        </article>
+        <article class="card">
+          <span class="card-label">Apartments tracked</span>
+          <strong id="apartmentCount">0</strong>
+          <small id="avgRent">Average rent: $0 / month</small>
+        </article>
+        <article class="card">
+          <span class="card-label">Best net option</span>
+          <strong id="bestLocation">Add more data</strong>
+          <small id="bestLocationDetail">Uses monthly pay minus monthly rent.</small>
+        </article>
+        <article class="card">
+          <span class="card-label">Matched on map</span>
+          <strong id="matchedCount">0</strong>
+          <small id="unmatchedLocations">No missing locations</small>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <section class="map-panel" aria-labelledby="mapTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Automatic placement</p>
+              <h2 id="mapTitle">Australia map</h2>
+            </div>
+            <div class="legend" aria-label="Map legend">
+              <span><i class="legend-dot job-dot"></i>Job</span>
+              <span><i class="legend-dot apartment-dot"></i>Apartment</span>
+            </div>
+          </div>
+
+          <div class="map-shell" id="mapShell">
+            <svg class="australia-svg" viewBox="0 0 1000 760" aria-hidden="true" focusable="false">
+              <path
+                class="land"
+                d="M178 420 C116 367 102 287 142 225 C182 162 252 136 330 103 C418 66 524 83 616 111 C724 143 811 192 848 262 C887 337 842 428 784 500 C716 585 632 636 520 637 C401 638 278 584 178 420 Z"
+              />
+              <path
+                class="land-detail"
+                d="M404 640 C436 679 507 690 547 658 C524 720 444 724 404 640 Z"
+              />
+              <path class="state-line" d="M532 112 L532 632" />
+              <path class="state-line" d="M701 179 L651 611" />
+              <path class="state-line" d="M532 384 L783 384" />
+              <path class="state-line" d="M182 421 C282 386 419 379 532 384" />
+              <path class="state-line" d="M650 611 C619 568 618 473 651 384" />
+            </svg>
+            <div class="map-grid" aria-hidden="true"></div>
+            <div id="mapMarkers" class="marker-layer" aria-live="polite"></div>
+          </div>
+          <p class="map-note">
+            Tip: use city/suburb names like <strong>Sydney NSW</strong>,
+            <strong>Melbourne VIC</strong>, <strong>Brisbane QLD</strong>, or
+            <strong>Perth WA</strong>. Unknown locations stay in the table and are
+            listed in the dashboard.
+          </p>
+        </section>
+
+        <section class="tables-panel" aria-label="Editable data tables">
+          <article class="table-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Editable table</p>
+                <h2>Jobs</h2>
+              </div>
+              <button id="addJob" type="button">Add job</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Job name</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Hourly pay</th>
+                    <th>Hours/week</th>
+                    <th>Notes</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="jobsTable"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="table-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Editable table</p>
+                <h2>Apartments</h2>
+              </div>
+              <button id="addApartment" type="button">Add apartment</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Monthly price</th>
+                    <th>Bedrooms</th>
+                    <th>Link</th>
+                    <th>Notes</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="apartmentsTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <template id="textInputTemplate">
+      <input type="text" />
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
