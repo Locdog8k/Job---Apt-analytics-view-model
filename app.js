@@ -10,7 +10,7 @@ const AUSTRALIA_BOUNDS = {
 const DEFAULT_DATA = {
   jobs: [
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Barista",
       company: "Harbour Cafe",
       location: "Sydney NSW",
@@ -19,7 +19,7 @@ const DEFAULT_DATA = {
       notes: "Busy cafe, close to public transport",
     },
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Warehouse assistant",
       company: "West Coast Logistics",
       location: "Perth WA",
@@ -28,7 +28,7 @@ const DEFAULT_DATA = {
       notes: "Morning shift",
     },
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Hotel receptionist",
       company: "River Stay",
       location: "Brisbane QLD",
@@ -39,7 +39,7 @@ const DEFAULT_DATA = {
   ],
   apartments: [
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Studio near Central",
       location: "Sydney NSW",
       monthlyPrice: 2600,
@@ -48,7 +48,7 @@ const DEFAULT_DATA = {
       notes: "High rent, very central",
     },
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Shared apartment",
       location: "Perth WA",
       monthlyPrice: 1500,
@@ -57,7 +57,7 @@ const DEFAULT_DATA = {
       notes: "Good value if sharing",
     },
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: "Unit close to CBD",
       location: "Brisbane QLD",
       monthlyPrice: 1900,
@@ -129,7 +129,7 @@ let state = loadData();
 
 dom.addJob.addEventListener("click", () => {
   state.jobs.push({
-    id: crypto.randomUUID(),
+    id: createId(),
     name: "New job",
     company: "",
     location: "",
@@ -142,7 +142,7 @@ dom.addJob.addEventListener("click", () => {
 
 dom.addApartment.addEventListener("click", () => {
   state.apartments.push({
-    id: crypto.randomUUID(),
+    id: createId(),
     name: "New apartment",
     location: "",
     monthlyPrice: 0,
@@ -207,19 +207,21 @@ function loadData() {
 
 function cloneDefaultData() {
   return {
-    jobs: DEFAULT_DATA.jobs.map((job) => ({ ...job, id: crypto.randomUUID() })),
+    jobs: DEFAULT_DATA.jobs.map((job) => ({ ...job, id: createId() })),
     apartments: DEFAULT_DATA.apartments.map((apartment) => ({
       ...apartment,
-      id: crypto.randomUUID(),
+      id: createId(),
     })),
   };
 }
 
 function normalizeImportedData(imported) {
+  const source = imported && typeof imported === "object" ? imported : {};
+
   return {
-    jobs: Array.isArray(imported.jobs)
-      ? imported.jobs.map((job) => ({
-          id: String(job.id || crypto.randomUUID()),
+    jobs: Array.isArray(source.jobs)
+      ? source.jobs.map((job) => ({
+          id: String(job.id || createId()),
           name: String(job.name || ""),
           company: String(job.company || ""),
           location: String(job.location || ""),
@@ -228,9 +230,9 @@ function normalizeImportedData(imported) {
           notes: String(job.notes || ""),
         }))
       : [],
-    apartments: Array.isArray(imported.apartments)
-      ? imported.apartments.map((apartment) => ({
-          id: String(apartment.id || crypto.randomUUID()),
+    apartments: Array.isArray(source.apartments)
+      ? source.apartments.map((apartment) => ({
+          id: String(apartment.id || createId()),
           name: String(apartment.name || ""),
           location: String(apartment.location || ""),
           monthlyPrice: toNumber(apartment.monthlyPrice),
@@ -504,6 +506,14 @@ function average(values) {
   const usable = values.map(toNumber).filter((value) => value > 0);
   if (usable.length === 0) return 0;
   return usable.reduce((sum, value) => sum + value, 0) / usable.length;
+}
+
+function createId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function toNumber(value) {
