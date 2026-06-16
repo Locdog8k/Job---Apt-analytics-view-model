@@ -5,7 +5,7 @@ const AUSTRALIA_MAP_BOUNDS = [
   [-44.5, 111.5],
   [-9.5, 155.5],
 ];
-const LOCATION_SUGGESTION_LIMIT = 1600;
+const LOCATION_SUGGESTION_LIMIT = 12;
 const STATE_ALIASES = {
   ACT: ["act", "australian capital territory"],
   NSW: ["nsw", "new south wales"],
@@ -90,7 +90,6 @@ const dom = {
   apartmentsTable: document.querySelector("#apartmentsTable"),
   map: document.querySelector("#map"),
   mapFallback: document.querySelector("#mapFallback"),
-  locationOptions: document.querySelector("#locationOptions"),
   locationDatabaseCount: document.querySelector("#locationDatabaseCount"),
   addJob: document.querySelector("#addJob"),
   addApartment: document.querySelector("#addApartment"),
@@ -110,7 +109,7 @@ const dom = {
 let state = loadData();
 
 initializeMap();
-renderLocationOptions();
+renderLocationDatabaseCount();
 
 dom.addJob.addEventListener("click", () => {
   state.jobs.push({
@@ -255,46 +254,20 @@ function initializeMap() {
     maxBoundsViscosity: 0.7,
   });
 
-  L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
-      attribution:
-        "Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-      maxZoom: 19,
-    }
-  ).addTo(map);
-
-  L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-    {
-      attribution: "Reference &copy; Esri",
-      maxZoom: 19,
-      pane: "overlayPane",
-    }
-  ).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
 
   markerLayer = L.layerGroup().addTo(map);
 
   setTimeout(() => map.invalidateSize(), 0);
 }
 
-function renderLocationOptions() {
+function renderLocationDatabaseCount() {
   if (dom.locationDatabaseCount) {
     dom.locationDatabaseCount.textContent = `${AUSTRALIA_PLACES.length.toLocaleString("en-AU")}`;
   }
-
-  if (!dom.locationOptions || AUSTRALIA_PLACES.length === 0) return;
-
-  const options = document.createDocumentFragment();
-  getPlaceIndex()
-    .slice(0, LOCATION_SUGGESTION_LIMIT)
-    .forEach((place) => {
-      const option = document.createElement("option");
-      option.value = place.label;
-      options.appendChild(option);
-    });
-
-  dom.locationOptions.replaceChildren(options);
 }
 
 function markerIcon(type) {
@@ -382,24 +355,53 @@ function editableCell(item, key, type, label, options = {}) {
 
 function locationCell(item, group, location) {
   const cell = document.createElement("td");
+  const selector = document.createElement("div");
   const input = document.createElement("input");
+  const suggestions = document.createElement("div");
   const status = document.createElement("span");
 
+  selector.className = "location-selector";
   input.type = "text";
   input.value = item.location;
   input.ariaLabel = "Location";
-  input.setAttribute("list", "locationOptions");
   input.placeholder = "Example: Sydney NSW";
+  input.autocomplete = "off";
+  input.addEventListener("input", () => {
+    renderLocationSuggestions(input.value, suggestions, (place) => {
+      item.location = place.label;
+      saveAndRender();
+    });
+  });
   input.addEventListener("change", () => {
     item.location = input.value.trim();
     saveAndRender();
   });
+  input.addEventListener("focus", () => {
+    renderLocationSuggestions(input.value, suggestions, (place) => {
+      item.location = place.label;
+      saveAndRender();
+    });
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      suggestions.hidden = true;
+    }
+  });
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      suggestions.hidden = true;
+    }, 120);
+  });
+
+  suggestions.className = "location-suggestions";
+  suggestions.hidden = true;
 
   status.className = location ? "location-status" : "location-status warning";
   status.textContent = location ? `Mapped to ${location.label}` : "Not mapped yet";
   status.dataset.group = group;
 
-  cell.append(input, status);
+  selector.append(input, suggestions);
+  cell.append(selector, status);
   return cell;
 }
 
@@ -416,6 +418,58 @@ function deleteCell(group, id, label) {
   });
   cell.appendChild(button);
   return cell;
+}
+
+function renderLocationSuggestions(query, container, onSelect) {
+  const matches = findLocationSuggestions(query);
+  container.innerHTML = "";
+
+  if (matches.length === 0) {
+    container.hidden = true;
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.setAttribute("aria-label", "Australian city and town suggestions");
+
+  matches.forEach((place) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    const population = place.p ? `Population ${place.p.toLocaleString("en-AU")}` : "Population unavailable";
+
+    button.type = "button";
+    button.className = "location-suggestion";
+    button.innerHTML = `
+      <strong>${escapeHtml(place.n)}</strong>
+      <span>${escapeHtml(place.s || "Australia")} - ${escapeHtml(population)}</span>
+    `;
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      onSelect(place);
+    });
+
+    item.appendChild(button);
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+  container.hidden = false;
+}
+
+function findLocationSuggestions(query) {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) return [];
+
+  const preferredState = detectPreferredState(normalizedQuery);
+  const queryWithoutState = removeStateAliases(normalizedQuery, preferredState);
+  const searchableQuery = queryWithoutState || normalizedQuery;
+
+  return getPlaceIndex()
+    .filter((place) => {
+      if (preferredState && place.s !== preferredState) return false;
+      return place.nameKey.startsWith(searchableQuery) || place.labelKey.startsWith(searchableQuery);
+    })
+    .slice(0, LOCATION_SUGGESTION_LIMIT);
 }
 
 function emptyRow(message, columns) {
@@ -555,6 +609,7 @@ function getPlaceIndex() {
       ...place,
       label: `${place.n}${place.s ? `, ${place.s}` : ""}`,
       nameKey: normalizeText(place.n),
+      labelKey: normalizeText(`${place.n} ${place.s || ""}`),
     })).sort((a, b) => {
       if ((b.p || 0) !== (a.p || 0)) return (b.p || 0) - (a.p || 0);
       return a.label.localeCompare(b.label);
@@ -636,6 +691,15 @@ function normalizeText(value) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function escapeRegex(value) {

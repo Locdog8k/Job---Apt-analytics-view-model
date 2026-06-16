@@ -6,7 +6,8 @@ It works as a simple browser-based database with:
 - one editable table for jobs
 - one editable table for apartments
 - automatic map placement from a local Australian city/town database
-- a real satellite map view of Australia
+- a real OpenStreetMap street map view of Australia
+- a smart city/town selector that filters as you type
 - a small dashboard for counts, average pay/rent, and best estimated net option
 - JSON export/import for easy backup and editing
 
@@ -24,9 +25,9 @@ Then open:
 http://localhost:4173
 ```
 
-The satellite map uses online Leaflet and Esri tile resources, so it needs an
-internet connection. The city/town matching database is local and is included in
-`data/australia-places.js`.
+The street map uses online OpenStreetMap tile resources through Leaflet, so it
+needs an internet connection. The city/town matching database is local and is
+included in `data/australia-places.js`.
 
 ## How to use
 
@@ -44,11 +45,14 @@ internet connection. The city/town matching database is local and is included in
    - bedrooms
    - link
    - notes
-3. Locations are mapped automatically when they match an Australian city, town,
+3. In a location field, type the first letter or first few letters of a city or
+   town. Matching Australian places appear directly under the field; click one
+   to select it.
+4. Locations are mapped automatically when they match an Australian city, town,
    or populated place in `data/australia-places.js`. For ambiguous names, add
    the state/territory abbreviation, for example `Richmond VIC` or `Richmond NSW`.
-4. Use **Export JSON** to save your data.
-5. Use **Import JSON** to load a saved database.
+5. Use **Export JSON** to save your data.
+6. Use **Import JSON** to load a saved database.
 
 The data is also saved automatically in browser local storage, so edits remain
 available when you reopen the page in the same browser.
@@ -71,5 +75,5 @@ current GeoNames AU export and keep the same `window.AUSTRALIA_PLACES` format.
 ## Attribution
 
 - Location data: GeoNames, licensed under Creative Commons Attribution 4.0.
-- Satellite tiles: Esri World Imagery.
+- Street map data and tiles: OpenStreetMap contributors.
 - Interactive map: Leaflet.

@@ -59,7 +59,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Automatic placement</p>
-              <h2 id="mapTitle">Australia satellite map</h2>
+              <h2 id="mapTitle">Australia street map</h2>
             </div>
             <div class="legend" aria-label="Map legend">
               <span><i class="legend-dot job-dot"></i>Job</span>
@@ -70,19 +70,20 @@
           <div class="map-shell">
             <div
               id="map"
-              class="satellite-map"
+              class="street-map"
               role="application"
-              aria-label="Satellite map of Australia with job and apartment markers"
+              aria-label="OpenStreetMap street map of Australia with job and apartment markers"
             ></div>
             <div id="mapFallback" class="map-fallback" hidden>
-              Satellite tiles need an internet connection. Your data still saves,
+              Map tiles need an internet connection. Your data still saves,
               and locations continue to match against the local city/town database.
             </div>
           </div>
           <p class="map-note">
             Tip: use city/suburb names like <strong>Sydney NSW</strong>,
             <strong>Melbourne VIC</strong>, <strong>Brisbane QLD</strong>, or
-            <strong>Perth WA</strong>. The local database contains
+            <strong>Perth WA</strong>. Type the first letters of a city or town
+            to choose it from the smart selector. The local database contains
             <strong id="locationDatabaseCount">thousands of</strong> Australian
             city and town records for automatic placement.
           </p>
@@ -144,7 +145,6 @@
       </section>
     </main>
 
-    <datalist id="locationOptions"></datalist>
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
