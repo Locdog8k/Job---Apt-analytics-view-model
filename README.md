@@ -6,7 +6,7 @@ It works as a simple browser-based database with:
 - one editable table for jobs
 - one editable table for apartments
 - automatic map placement from a local Australian city/town database
-- a real OpenStreetMap street map view of Australia
+- an offline flat plan view of the whole of Australia
 - a smart city/town selector that filters as you type
 - a small dashboard for counts, average pay/rent, and best estimated net option
 - JSON export/import for easy backup and editing
@@ -25,9 +25,9 @@ Then open:
 http://localhost:4173
 ```
 
-The street map uses online OpenStreetMap tile resources through Leaflet, so it
-needs an internet connection. The city/town matching database is local and is
-included in `data/australia-places.js`.
+The map is rendered locally with HTML, CSS, and SVG. It does not need an internet
+connection, a map API, or online map tiles. The city/town matching database is
+local and is included in `data/australia-places.js`.
 
 ## How to use
 
@@ -47,7 +47,8 @@ included in `data/australia-places.js`.
    - notes
 3. In a location field, type the first letter or first few letters of a city or
    town. Matching Australian places appear directly under the field; click one
-   to select it.
+   to select it. The selector uses a first-letter index and only renders a small
+   result set to stay responsive.
 4. Locations are mapped automatically when they match an Australian city, town,
    or populated place in `data/australia-places.js`. For ambiguous names, add
    the state/territory abbreviation, for example `Richmond VIC` or `Richmond NSW`.
@@ -69,11 +70,12 @@ GeoNames Australia dump. Each record stores:
 - population when available
 - GeoNames feature code
 
+The app uses each place's latitude and longitude to calculate its point on the
+offline Australia map. Job and apartment points use different marker colors.
+
 To refresh or expand the database, regenerate `data/australia-places.js` from a
 current GeoNames AU export and keep the same `window.AUSTRALIA_PLACES` format.
 
 ## Attribution
 
 - Location data: GeoNames, licensed under Creative Commons Attribution 4.0.
-- Street map data and tiles: OpenStreetMap contributors.
-- Interactive map: Leaflet.
