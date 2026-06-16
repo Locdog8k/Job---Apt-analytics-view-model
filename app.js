@@ -1,10 +1,21 @@
 const STORAGE_KEY = "australia-job-apartment-analytics-v1";
 
-const AUSTRALIA_BOUNDS = {
-  minLat: -44.5,
-  maxLat: -10,
-  minLng: 112,
-  maxLng: 154.5,
+const AUSTRALIA_CENTER = [-25.2744, 133.7751];
+const AUSTRALIA_MAP_BOUNDS = [
+  [-44.5, 111.5],
+  [-9.5, 155.5],
+];
+const LOCATION_SUGGESTION_LIMIT = 12;
+const STATE_ALIASES = {
+  ACT: ["act", "australian capital territory"],
+  NSW: ["nsw", "new south wales"],
+  NT: ["nt", "northern territory"],
+  QLD: ["qld", "queensland"],
+  SA: ["sa", "south australia"],
+  TAS: ["tas", "tasmania"],
+  VIC: ["vic", "victoria"],
+  WA: ["wa", "western australia"],
+  JBT: ["jbt", "jervis bay territory"],
 };
 
 const DEFAULT_DATA = {
@@ -68,48 +79,18 @@ const DEFAULT_DATA = {
   ],
 };
 
-const CITY_COORDS = [
-  { aliases: ["sydney", "sydney nsw", "nsw"], lat: -33.8688, lng: 151.2093, label: "Sydney, NSW" },
-  { aliases: ["melbourne", "melbourne vic", "vic"], lat: -37.8136, lng: 144.9631, label: "Melbourne, VIC" },
-  { aliases: ["brisbane", "brisbane qld", "qld"], lat: -27.4698, lng: 153.0251, label: "Brisbane, QLD" },
-  { aliases: ["perth", "perth wa", "wa"], lat: -31.9523, lng: 115.8613, label: "Perth, WA" },
-  { aliases: ["adelaide", "adelaide sa", "sa"], lat: -34.9285, lng: 138.6007, label: "Adelaide, SA" },
-  { aliases: ["hobart", "hobart tas", "tas"], lat: -42.8821, lng: 147.3272, label: "Hobart, TAS" },
-  { aliases: ["darwin", "darwin nt", "nt"], lat: -12.4634, lng: 130.8456, label: "Darwin, NT" },
-  { aliases: ["canberra", "canberra act", "act"], lat: -35.2809, lng: 149.13, label: "Canberra, ACT" },
-  { aliases: ["gold coast", "surfers paradise"], lat: -28.0167, lng: 153.4, label: "Gold Coast, QLD" },
-  { aliases: ["newcastle"], lat: -32.9283, lng: 151.7817, label: "Newcastle, NSW" },
-  { aliases: ["wollongong"], lat: -34.4278, lng: 150.8931, label: "Wollongong, NSW" },
-  { aliases: ["geelong"], lat: -38.1499, lng: 144.3617, label: "Geelong, VIC" },
-  { aliases: ["cairns"], lat: -16.9186, lng: 145.7781, label: "Cairns, QLD" },
-  { aliases: ["townsville"], lat: -19.2589, lng: 146.8169, label: "Townsville, QLD" },
-  { aliases: ["sunshine coast", "maroochydore", "noosa"], lat: -26.65, lng: 153.0667, label: "Sunshine Coast, QLD" },
-  { aliases: ["toowoomba"], lat: -27.5598, lng: 151.9507, label: "Toowoomba, QLD" },
-  { aliases: ["ballarat"], lat: -37.5622, lng: 143.8503, label: "Ballarat, VIC" },
-  { aliases: ["bendigo"], lat: -36.757, lng: 144.2794, label: "Bendigo, VIC" },
-  { aliases: ["alice springs"], lat: -23.698, lng: 133.8807, label: "Alice Springs, NT" },
-  { aliases: ["launceston"], lat: -41.4332, lng: 147.1441, label: "Launceston, TAS" },
-  { aliases: ["fremantle"], lat: -32.0569, lng: 115.7439, label: "Fremantle, WA" },
-  { aliases: ["parramatta"], lat: -33.815, lng: 151.0011, label: "Parramatta, NSW" },
-  { aliases: ["bondi", "bondi beach"], lat: -33.8915, lng: 151.2767, label: "Bondi, NSW" },
-  { aliases: ["newtown"], lat: -33.8971, lng: 151.178, label: "Newtown, NSW" },
-  { aliases: ["st kilda", "saint kilda"], lat: -37.8676, lng: 144.9809, label: "St Kilda, VIC" },
-  { aliases: ["carlton"], lat: -37.8001, lng: 144.9671, label: "Carlton, VIC" },
-  { aliases: ["southbank"], lat: -37.823, lng: 144.9654, label: "Southbank, VIC" },
-  { aliases: ["docklands"], lat: -37.8176, lng: 144.9465, label: "Docklands, VIC" },
-  { aliases: ["richmond vic"], lat: -37.8199, lng: 145.0027, label: "Richmond, VIC" },
-  { aliases: ["fortitude valley"], lat: -27.4565, lng: 153.0344, label: "Fortitude Valley, QLD" },
-  { aliases: ["south brisbane"], lat: -27.4766, lng: 153.0167, label: "South Brisbane, QLD" },
-  { aliases: ["west end brisbane"], lat: -27.4796, lng: 153.0124, label: "West End, QLD" },
-  { aliases: ["northbridge"], lat: -31.9476, lng: 115.858, label: "Northbridge, WA" },
-  { aliases: ["subiaco"], lat: -31.9485, lng: 115.8268, label: "Subiaco, WA" },
-  { aliases: ["chatswood"], lat: -33.7969, lng: 151.1856, label: "Chatswood, NSW" },
-];
+const AUSTRALIA_PLACES = Array.isArray(window.AUSTRALIA_PLACES) ? window.AUSTRALIA_PLACES : [];
+
+let map;
+let markerLayer;
+let placeIndex;
 
 const dom = {
   jobsTable: document.querySelector("#jobsTable"),
   apartmentsTable: document.querySelector("#apartmentsTable"),
-  mapMarkers: document.querySelector("#mapMarkers"),
+  map: document.querySelector("#map"),
+  mapFallback: document.querySelector("#mapFallback"),
+  locationDatabaseCount: document.querySelector("#locationDatabaseCount"),
   addJob: document.querySelector("#addJob"),
   addApartment: document.querySelector("#addApartment"),
   exportData: document.querySelector("#exportData"),
@@ -126,6 +107,9 @@ const dom = {
 };
 
 let state = loadData();
+
+initializeMap();
+renderLocationDatabaseCount();
 
 dom.addJob.addEventListener("click", () => {
   state.jobs.push({
@@ -256,6 +240,46 @@ function render() {
   renderDashboard();
 }
 
+function initializeMap() {
+  if (!dom.map || !window.L) {
+    if (dom.mapFallback) dom.mapFallback.hidden = false;
+    return;
+  }
+
+  map = L.map(dom.map, {
+    center: AUSTRALIA_CENTER,
+    zoom: 4,
+    minZoom: 3,
+    maxBounds: AUSTRALIA_MAP_BOUNDS,
+    maxBoundsViscosity: 0.7,
+  });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  markerLayer = L.layerGroup().addTo(map);
+
+  setTimeout(() => map.invalidateSize(), 0);
+}
+
+function renderLocationDatabaseCount() {
+  if (dom.locationDatabaseCount) {
+    dom.locationDatabaseCount.textContent = `${AUSTRALIA_PLACES.length.toLocaleString("en-AU")}`;
+  }
+}
+
+function markerIcon(type) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="custom-pin ${type}"></span>`,
+    iconAnchor: [11, 22],
+    iconSize: [22, 22],
+    popupAnchor: [0, -22],
+  });
+}
+
 function renderJobsTable() {
   dom.jobsTable.innerHTML = "";
 
@@ -331,23 +355,53 @@ function editableCell(item, key, type, label, options = {}) {
 
 function locationCell(item, group, location) {
   const cell = document.createElement("td");
+  const selector = document.createElement("div");
   const input = document.createElement("input");
+  const suggestions = document.createElement("div");
   const status = document.createElement("span");
 
+  selector.className = "location-selector";
   input.type = "text";
   input.value = item.location;
   input.ariaLabel = "Location";
   input.placeholder = "Example: Sydney NSW";
+  input.autocomplete = "off";
+  input.addEventListener("input", () => {
+    renderLocationSuggestions(input.value, suggestions, (place) => {
+      item.location = place.label;
+      saveAndRender();
+    });
+  });
   input.addEventListener("change", () => {
     item.location = input.value.trim();
     saveAndRender();
   });
+  input.addEventListener("focus", () => {
+    renderLocationSuggestions(input.value, suggestions, (place) => {
+      item.location = place.label;
+      saveAndRender();
+    });
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      suggestions.hidden = true;
+    }
+  });
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      suggestions.hidden = true;
+    }, 120);
+  });
+
+  suggestions.className = "location-suggestions";
+  suggestions.hidden = true;
 
   status.className = location ? "location-status" : "location-status warning";
   status.textContent = location ? `Mapped to ${location.label}` : "Not mapped yet";
   status.dataset.group = group;
 
-  cell.append(input, status);
+  selector.append(input, suggestions);
+  cell.append(selector, status);
   return cell;
 }
 
@@ -366,6 +420,58 @@ function deleteCell(group, id, label) {
   return cell;
 }
 
+function renderLocationSuggestions(query, container, onSelect) {
+  const matches = findLocationSuggestions(query);
+  container.innerHTML = "";
+
+  if (matches.length === 0) {
+    container.hidden = true;
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.setAttribute("aria-label", "Australian city and town suggestions");
+
+  matches.forEach((place) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    const population = place.p ? `Population ${place.p.toLocaleString("en-AU")}` : "Population unavailable";
+
+    button.type = "button";
+    button.className = "location-suggestion";
+    button.innerHTML = `
+      <strong>${escapeHtml(place.n)}</strong>
+      <span>${escapeHtml(place.s || "Australia")} - ${escapeHtml(population)}</span>
+    `;
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      onSelect(place);
+    });
+
+    item.appendChild(button);
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+  container.hidden = false;
+}
+
+function findLocationSuggestions(query) {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) return [];
+
+  const preferredState = detectPreferredState(normalizedQuery);
+  const queryWithoutState = removeStateAliases(normalizedQuery, preferredState);
+  const searchableQuery = queryWithoutState || normalizedQuery;
+
+  return getPlaceIndex()
+    .filter((place) => {
+      if (preferredState && place.s !== preferredState) return false;
+      return place.nameKey.startsWith(searchableQuery) || place.labelKey.startsWith(searchableQuery);
+    })
+    .slice(0, LOCATION_SUGGESTION_LIMIT);
+}
+
 function emptyRow(message, columns) {
   const row = document.createElement("tr");
   const cell = document.createElement("td");
@@ -377,7 +483,9 @@ function emptyRow(message, columns) {
 }
 
 function renderMap() {
-  dom.mapMarkers.innerHTML = "";
+  if (!map || !markerLayer) return;
+
+  markerLayer.clearLayers();
   const markers = [
     ...state.jobs.map((job) => ({
       type: "job",
@@ -393,25 +501,28 @@ function renderMap() {
     })),
   ].filter((marker) => marker.location);
 
-  markers.forEach((marker, index) => {
-    const point = coordinatesToMapPoint(marker.location);
-    const wrap = document.createElement("button");
-    const pin = document.createElement("span");
-    const label = document.createElement("span");
+  const bounds = [];
 
-    wrap.type = "button";
-    wrap.className = "marker-wrap";
-    wrap.style.left = `calc(${point.x}% + ${offsetForStack(index)}px)`;
-    wrap.style.top = `calc(${point.y}% + ${offsetForStack(index + 2)}px)`;
-    wrap.title = `${marker.title} - ${marker.location.label}`;
+  markers.forEach((marker) => {
+    const latLng = [marker.location.lat, marker.location.lng];
+    bounds.push(latLng);
 
-    pin.className = `marker ${marker.type}`;
-    label.className = "marker-label";
-    label.textContent = `${marker.title} | ${marker.location.label} | ${marker.detail}`;
-
-    wrap.append(pin, label);
-    dom.mapMarkers.appendChild(wrap);
+    L.marker(latLng, { icon: markerIcon(marker.type), title: `${marker.title} - ${marker.location.label}` })
+      .bindPopup(
+        `<div class="marker-popup">
+          <strong>${escapeHtml(marker.title)}</strong>
+          <span>${marker.type === "job" ? "Job" : "Apartment"} - ${escapeHtml(marker.location.label)}</span><br />
+          ${escapeHtml(marker.detail)}
+        </div>`
+      )
+      .addTo(markerLayer);
   });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [42, 42], maxZoom: 11 });
+  } else {
+    map.setView(AUSTRALIA_CENTER, 4);
+  }
 }
 
 function renderDashboard() {
@@ -473,33 +584,76 @@ function geocodeLocation(rawLocation) {
   if (!rawLocation) return null;
 
   const normalized = normalizeText(rawLocation);
-  const matches = CITY_COORDS.flatMap((city) =>
-    city.aliases.map((alias) => ({ ...city, alias: normalizeText(alias) }))
-  ).sort((a, b) => b.alias.length - a.alias.length);
+  const preferredState = detectPreferredState(normalized);
+  const normalizedWithoutState = removeStateAliases(normalized, preferredState);
+  const places = getPlaceIndex();
 
-  return matches.find((city) => containsLocationToken(normalized, city.alias)) || null;
+  const exact = places.find((place) => {
+    if (preferredState && place.s !== preferredState) return false;
+    return place.nameKey === normalized || place.nameKey === normalizedWithoutState;
+  });
+
+  if (exact) return placeToLocation(exact);
+
+  const partial = places.find((place) => {
+    if (preferredState && place.s !== preferredState) return false;
+    return containsLocationToken(normalizedWithoutState || normalized, place.nameKey);
+  });
+
+  return partial ? placeToLocation(partial) : null;
 }
 
-function containsLocationToken(location, alias) {
-  if (alias.length <= 3) {
-    return new RegExp(`(^|\\s)${escapeRegex(alias)}($|\\s)`).test(location);
+function getPlaceIndex() {
+  if (!placeIndex) {
+    placeIndex = AUSTRALIA_PLACES.map((place) => ({
+      ...place,
+      label: `${place.n}${place.s ? `, ${place.s}` : ""}`,
+      nameKey: normalizeText(place.n),
+      labelKey: normalizeText(`${place.n} ${place.s || ""}`),
+    })).sort((a, b) => {
+      if ((b.p || 0) !== (a.p || 0)) return (b.p || 0) - (a.p || 0);
+      return a.label.localeCompare(b.label);
+    });
   }
 
-  return location.includes(alias);
+  return placeIndex;
 }
 
-function coordinatesToMapPoint({ lat, lng }) {
-  const x = ((lng - AUSTRALIA_BOUNDS.minLng) / (AUSTRALIA_BOUNDS.maxLng - AUSTRALIA_BOUNDS.minLng)) * 100;
-  const y = ((AUSTRALIA_BOUNDS.maxLat - lat) / (AUSTRALIA_BOUNDS.maxLat - AUSTRALIA_BOUNDS.minLat)) * 100;
+function detectPreferredState(normalizedLocation) {
+  return (
+    Object.entries(STATE_ALIASES).find(([, aliases]) =>
+      aliases.some((alias) => containsLocationToken(normalizedLocation, alias))
+    )?.[0] || ""
+  );
+}
 
+function removeStateAliases(normalizedLocation, state) {
+  if (!state) return normalizedLocation;
+
+  return STATE_ALIASES[state]
+    .reduce(
+      (location, alias) =>
+        location.replace(new RegExp(`(^|\\s)${escapeRegex(alias)}($|\\s)`, "g"), " "),
+      normalizedLocation
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function containsLocationToken(location, placeName) {
+  if (!location || !placeName) return false;
+  if (placeName.length <= 2) return location === placeName;
+  return new RegExp(`(^|\\s)${escapeRegex(placeName)}($|\\s)`).test(location);
+}
+
+function placeToLocation(place) {
   return {
-    x: clamp(x, 4, 96),
-    y: clamp(y, 6, 94),
+    lat: place.lat,
+    lng: place.lng,
+    label: place.label,
+    population: place.p || 0,
+    feature: place.f,
   };
-}
-
-function offsetForStack(index) {
-  return ((index % 5) - 2) * 7;
 }
 
 function average(values) {
@@ -539,10 +693,15 @@ function normalizeText(value) {
     .trim();
 }
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
