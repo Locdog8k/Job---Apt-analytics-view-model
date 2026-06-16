@@ -1,11 +1,10 @@
 const STORAGE_KEY = "australia-job-apartment-analytics-v1";
 
-const AUSTRALIA_CENTER = [-25.2744, 133.7751];
 const AUSTRALIA_MAP_BOUNDS = [
   [-44.5, 111.5],
   [-9.5, 155.5],
 ];
-const LOCATION_SUGGESTION_LIMIT = 12;
+const LOCATION_SUGGESTION_LIMIT = 8;
 const STATE_ALIASES = {
   ACT: ["act", "australian capital territory"],
   NSW: ["nsw", "new south wales"],
@@ -81,15 +80,14 @@ const DEFAULT_DATA = {
 
 const AUSTRALIA_PLACES = Array.isArray(window.AUSTRALIA_PLACES) ? window.AUSTRALIA_PLACES : [];
 
-let map;
-let markerLayer;
 let placeIndex;
+let placeSearchBuckets;
 
 const dom = {
   jobsTable: document.querySelector("#jobsTable"),
   apartmentsTable: document.querySelector("#apartmentsTable"),
   map: document.querySelector("#map"),
-  mapFallback: document.querySelector("#mapFallback"),
+  mapMarkers: document.querySelector("#mapMarkers"),
   locationDatabaseCount: document.querySelector("#locationDatabaseCount"),
   addJob: document.querySelector("#addJob"),
   addApartment: document.querySelector("#addApartment"),
@@ -108,7 +106,6 @@ const dom = {
 
 let state = loadData();
 
-initializeMap();
 renderLocationDatabaseCount();
 
 dom.addJob.addEventListener("click", () => {
@@ -240,44 +237,10 @@ function render() {
   renderDashboard();
 }
 
-function initializeMap() {
-  if (!dom.map || !window.L) {
-    if (dom.mapFallback) dom.mapFallback.hidden = false;
-    return;
-  }
-
-  map = L.map(dom.map, {
-    center: AUSTRALIA_CENTER,
-    zoom: 4,
-    minZoom: 3,
-    maxBounds: AUSTRALIA_MAP_BOUNDS,
-    maxBoundsViscosity: 0.7,
-  });
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(map);
-
-  markerLayer = L.layerGroup().addTo(map);
-
-  setTimeout(() => map.invalidateSize(), 0);
-}
-
 function renderLocationDatabaseCount() {
   if (dom.locationDatabaseCount) {
     dom.locationDatabaseCount.textContent = `${AUSTRALIA_PLACES.length.toLocaleString("en-AU")}`;
   }
-}
-
-function markerIcon(type) {
-  return L.divIcon({
-    className: "",
-    html: `<span class="custom-pin ${type}"></span>`,
-    iconAnchor: [11, 22],
-    iconSize: [22, 22],
-    popupAnchor: [0, -22],
-  });
 }
 
 function renderJobsTable() {
@@ -463,13 +426,19 @@ function findLocationSuggestions(query) {
   const preferredState = detectPreferredState(normalizedQuery);
   const queryWithoutState = removeStateAliases(normalizedQuery, preferredState);
   const searchableQuery = queryWithoutState || normalizedQuery;
+  const firstLetter = searchableQuery[0];
+  const searchPool = getPlaceSearchBuckets().get(firstLetter) || [];
+  const matches = [];
 
-  return getPlaceIndex()
-    .filter((place) => {
-      if (preferredState && place.s !== preferredState) return false;
-      return place.nameKey.startsWith(searchableQuery) || place.labelKey.startsWith(searchableQuery);
-    })
-    .slice(0, LOCATION_SUGGESTION_LIMIT);
+  for (const place of searchPool) {
+    if (preferredState && place.s !== preferredState) continue;
+    if (!place.nameKey.startsWith(searchableQuery) && !place.labelKey.startsWith(searchableQuery)) continue;
+
+    matches.push(place);
+    if (matches.length >= LOCATION_SUGGESTION_LIMIT) break;
+  }
+
+  return matches;
 }
 
 function emptyRow(message, columns) {
@@ -483,9 +452,9 @@ function emptyRow(message, columns) {
 }
 
 function renderMap() {
-  if (!map || !markerLayer) return;
+  if (!dom.mapMarkers) return;
 
-  markerLayer.clearLayers();
+  dom.mapMarkers.innerHTML = "";
   const markers = [
     ...state.jobs.map((job) => ({
       type: "job",
@@ -501,28 +470,29 @@ function renderMap() {
     })),
   ].filter((marker) => marker.location);
 
-  const bounds = [];
+  markers.forEach((marker, index) => {
+    const point = coordinatesToMapPoint(marker.location);
+    const wrap = document.createElement("button");
+    const pin = document.createElement("span");
+    const label = document.createElement("span");
 
-  markers.forEach((marker) => {
-    const latLng = [marker.location.lat, marker.location.lng];
-    bounds.push(latLng);
+    wrap.type = "button";
+    wrap.className = "marker-wrap";
+    wrap.style.left = `calc(${point.x}% + ${offsetForStack(index)}px)`;
+    wrap.style.top = `calc(${point.y}% + ${offsetForStack(index + 2)}px)`;
+    wrap.title = `${marker.title} - ${marker.location.label}`;
 
-    L.marker(latLng, { icon: markerIcon(marker.type), title: `${marker.title} - ${marker.location.label}` })
-      .bindPopup(
-        `<div class="marker-popup">
-          <strong>${escapeHtml(marker.title)}</strong>
-          <span>${marker.type === "job" ? "Job" : "Apartment"} - ${escapeHtml(marker.location.label)}</span><br />
-          ${escapeHtml(marker.detail)}
-        </div>`
-      )
-      .addTo(markerLayer);
+    pin.className = `map-pin ${marker.type}`;
+    label.className = "marker-label";
+    label.innerHTML = `
+      <strong>${escapeHtml(marker.title)}</strong>
+      <span>${marker.type === "job" ? "Job" : "Apartment"} - ${escapeHtml(marker.location.label)}</span>
+      <small>${escapeHtml(marker.detail)}</small>
+    `;
+
+    wrap.append(pin, label);
+    dom.mapMarkers.appendChild(wrap);
   });
-
-  if (bounds.length > 0) {
-    map.fitBounds(bounds, { padding: [42, 42], maxZoom: 11 });
-  } else {
-    map.setView(AUSTRALIA_CENTER, 4);
-  }
 }
 
 function renderDashboard() {
@@ -619,6 +589,25 @@ function getPlaceIndex() {
   return placeIndex;
 }
 
+function getPlaceSearchBuckets() {
+  if (!placeSearchBuckets) {
+    placeSearchBuckets = new Map();
+
+    getPlaceIndex().forEach((place) => {
+      const firstLetter = place.nameKey[0];
+      if (!firstLetter) return;
+
+      if (!placeSearchBuckets.has(firstLetter)) {
+        placeSearchBuckets.set(firstLetter, []);
+      }
+
+      placeSearchBuckets.get(firstLetter).push(place);
+    });
+  }
+
+  return placeSearchBuckets;
+}
+
 function detectPreferredState(normalizedLocation) {
   return (
     Object.entries(STATE_ALIASES).find(([, aliases]) =>
@@ -654,6 +643,21 @@ function placeToLocation(place) {
     population: place.p || 0,
     feature: place.f,
   };
+}
+
+function coordinatesToMapPoint({ lat, lng }) {
+  const [[minLat, minLng], [maxLat, maxLng]] = AUSTRALIA_MAP_BOUNDS;
+  const x = ((lng - minLng) / (maxLng - minLng)) * 100;
+  const y = ((maxLat - lat) / (maxLat - minLat)) * 100;
+
+  return {
+    x: clamp(x, 3, 97),
+    y: clamp(y, 4, 96),
+  };
+}
+
+function offsetForStack(index) {
+  return ((index % 5) - 2) * 6;
 }
 
 function average(values) {
@@ -704,4 +708,8 @@ function escapeHtml(value) {
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }

@@ -4,12 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Australia Job & Apartment Analytics</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIINfQ/okWnU7QFKWaV4tc6gSkbSe3Qb1hA="
-      crossorigin=""
-    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -59,7 +53,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Automatic placement</p>
-              <h2 id="mapTitle">Australia street map</h2>
+              <h2 id="mapTitle">Offline Australia plan map</h2>
             </div>
             <div class="legend" aria-label="Map legend">
               <span><i class="legend-dot job-dot"></i>Job</span>
@@ -68,15 +62,24 @@
           </div>
 
           <div class="map-shell">
-            <div
-              id="map"
-              class="street-map"
-              role="application"
-              aria-label="OpenStreetMap street map of Australia with job and apartment markers"
-            ></div>
-            <div id="mapFallback" class="map-fallback" hidden>
-              Map tiles need an internet connection. Your data still saves,
-              and locations continue to match against the local city/town database.
+            <div id="map" class="flat-map" role="img" aria-label="Offline flat plan of Australia with job and apartment markers">
+              <svg class="australia-plan" viewBox="0 0 1000 760" aria-hidden="true" focusable="false">
+                <path
+                  class="land"
+                  d="M178 420 C116 367 102 287 142 225 C182 162 252 136 330 103 C418 66 524 83 616 111 C724 143 811 192 848 262 C887 337 842 428 784 500 C716 585 632 636 520 637 C401 638 278 584 178 420 Z"
+                />
+                <path
+                  class="land-detail"
+                  d="M404 640 C436 679 507 690 547 658 C524 720 444 724 404 640 Z"
+                />
+                <path class="state-line" d="M532 112 L532 632" />
+                <path class="state-line" d="M701 179 L651 611" />
+                <path class="state-line" d="M532 384 L783 384" />
+                <path class="state-line" d="M182 421 C282 386 419 379 532 384" />
+                <path class="state-line" d="M650 611 C619 568 618 473 651 384" />
+              </svg>
+              <div class="map-grid" aria-hidden="true"></div>
+              <div id="mapMarkers" class="marker-layer" aria-live="polite"></div>
             </div>
           </div>
           <p class="map-note">
@@ -85,7 +88,7 @@
             <strong>Perth WA</strong>. Type the first letters of a city or town
             to choose it from the smart selector. The local database contains
             <strong id="locationDatabaseCount">thousands of</strong> Australian
-            city and town records for automatic placement.
+            city and town records with latitude/longitude for automatic placement.
           </p>
         </section>
 
@@ -145,12 +148,6 @@
       </section>
     </main>
 
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-      defer
-    ></script>
     <script src="data/australia-places.js" defer></script>
     <script src="app.js" defer></script>
   </body>
