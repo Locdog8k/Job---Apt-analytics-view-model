@@ -1,30 +1,11 @@
 const STORAGE_KEY = "australia-job-apartment-analytics-v1";
 
-const AUSTRALIA_MAP = window.AUSTRALIA_MAP || {
-  projection: "webMercator",
-  viewBox: [0, 0, 1000, 760],
-  bounds: [
-    [-44.5, 112],
-    [-9.5, 154.5],
-  ],
-  paths: [],
-};
-const AUSTRALIA_MAP_BOUNDS = AUSTRALIA_MAP.bounds;
-const AUSTRALIA_VIEW_BOX = AUSTRALIA_MAP.viewBox;
-const LOCATION_SUGGESTION_LIMIT = 8;
-const MAP_MIN_SCALE = 1;
-const MAP_MAX_SCALE = 8;
-const MAP_LABEL_LOCATIONS = [
-  "Perth WA",
-  "Darwin NT",
-  "Adelaide SA",
-  "Melbourne VIC",
-  "Hobart TAS",
-  "Canberra ACT",
-  "Sydney NSW",
-  "Brisbane QLD",
-  "Cairns QLD",
+const AUSTRALIA_CENTER = [-25.2744, 133.7751];
+const AUSTRALIA_MAP_BOUNDS = [
+  [-44.5, 111.5],
+  [-9.5, 155.5],
 ];
+const LOCATION_SUGGESTION_LIMIT = 8;
 const STATE_ALIASES = {
   ACT: ["act", "australian capital territory"],
   NSW: ["nsw", "new south wales"],
@@ -100,27 +81,16 @@ const DEFAULT_DATA = {
 
 const AUSTRALIA_PLACES = Array.isArray(window.AUSTRALIA_PLACES) ? window.AUSTRALIA_PLACES : [];
 
+let map;
+let markerLayer;
 let placeIndex;
 let placeSearchBuckets;
-let mapView = {
-  scale: 1,
-  x: 0,
-  y: 0,
-};
-let activeDrag = null;
 
 const dom = {
   jobsTable: document.querySelector("#jobsTable"),
   apartmentsTable: document.querySelector("#apartmentsTable"),
   map: document.querySelector("#map"),
-  mapCanvas: document.querySelector("#mapCanvas"),
-  mapSvg: document.querySelector("#mapSvg"),
-  mapPathLayer: document.querySelector("#mapPathLayer"),
-  mapLabels: document.querySelector("#mapLabels"),
-  mapMarkers: document.querySelector("#mapMarkers"),
-  mapZoomIn: document.querySelector("#mapZoomIn"),
-  mapZoomOut: document.querySelector("#mapZoomOut"),
-  mapReset: document.querySelector("#mapReset"),
+  mapFallback: document.querySelector("#mapFallback"),
   locationDatabaseCount: document.querySelector("#locationDatabaseCount"),
   addJob: document.querySelector("#addJob"),
   addApartment: document.querySelector("#addApartment"),
@@ -139,7 +109,7 @@ const dom = {
 
 let state = loadData();
 
-initializeMapWidget();
+initializeMap();
 renderLocationDatabaseCount();
 
 dom.addJob.addEventListener("click", () => {
@@ -271,156 +241,51 @@ function render() {
   renderDashboard();
 }
 
-function initializeMapWidget() {
-  renderMapOutline();
-  renderMapLabels();
-  setMapTransform();
-
-  dom.mapZoomIn?.addEventListener("click", () => zoomMap(1.35));
-  dom.mapZoomOut?.addEventListener("click", () => zoomMap(1 / 1.35));
-  dom.mapReset?.addEventListener("click", resetMapView);
-
-  dom.map?.addEventListener(
-    "wheel",
-    (event) => {
-      event.preventDefault();
-      const rect = dom.map.getBoundingClientRect();
-      const origin = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      };
-      zoomMap(event.deltaY < 0 ? 1.18 : 1 / 1.18, origin);
-    },
-    { passive: false }
-  );
-
-  dom.map?.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".marker-wrap, .map-control")) return;
-
-    dom.map.setPointerCapture(event.pointerId);
-    dom.map.classList.add("is-dragging");
-    activeDrag = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      mapX: mapView.x,
-      mapY: mapView.y,
-    };
-  });
-
-  dom.map?.addEventListener("pointermove", (event) => {
-    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
-
-    mapView.x = activeDrag.mapX + event.clientX - activeDrag.startX;
-    mapView.y = activeDrag.mapY + event.clientY - activeDrag.startY;
-    clampMapView();
-    setMapTransform();
-  });
-
-  dom.map?.addEventListener("pointerup", endMapDrag);
-  dom.map?.addEventListener("pointercancel", endMapDrag);
-}
-
-function renderMapOutline() {
-  if (!dom.mapSvg || !dom.mapPathLayer) return;
-
-  dom.mapSvg.setAttribute("viewBox", AUSTRALIA_VIEW_BOX.join(" "));
-  dom.mapPathLayer.innerHTML = "";
-
-  AUSTRALIA_MAP.paths.forEach((pathDefinition) => {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("class", "land");
-    path.setAttribute("d", pathDefinition);
-    dom.mapPathLayer.appendChild(path);
-  });
-}
-
-function renderMapLabels() {
-  if (!dom.mapLabels) return;
-
-  dom.mapLabels.innerHTML = "";
-
-  MAP_LABEL_LOCATIONS.forEach((locationName) => {
-    const location = geocodeLocation(locationName);
-    if (!location) return;
-
-    const point = coordinatesToMapPoint(location);
-    const label = document.createElement("span");
-    label.className = "map-city-label";
-    label.style.left = `${point.x}%`;
-    label.style.top = `${point.y}%`;
-    label.textContent = location.label.replace(", ", " ");
-    dom.mapLabels.appendChild(label);
-  });
-}
-
-function zoomMap(factor, origin) {
-  if (!dom.map) return;
-
-  const rect = dom.map.getBoundingClientRect();
-  const zoomOrigin = origin || {
-    x: rect.width / 2,
-    y: rect.height / 2,
-  };
-  const oldScale = mapView.scale;
-  const nextScale = clamp(oldScale * factor, MAP_MIN_SCALE, MAP_MAX_SCALE);
-
-  if (nextScale === oldScale) return;
-
-  const mapPointX = (zoomOrigin.x - mapView.x) / oldScale;
-  const mapPointY = (zoomOrigin.y - mapView.y) / oldScale;
-
-  mapView.scale = nextScale;
-  mapView.x = zoomOrigin.x - mapPointX * nextScale;
-  mapView.y = zoomOrigin.y - mapPointY * nextScale;
-  clampMapView();
-  setMapTransform();
-}
-
-function resetMapView() {
-  mapView = {
-    scale: 1,
-    x: 0,
-    y: 0,
-  };
-  setMapTransform();
-}
-
-function endMapDrag(event) {
-  if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
-
-  dom.map.releasePointerCapture?.(event.pointerId);
-  dom.map.classList.remove("is-dragging");
-  activeDrag = null;
-}
-
-function clampMapView() {
-  if (!dom.map) return;
-
-  const rect = dom.map.getBoundingClientRect();
-  const scaledWidth = rect.width * mapView.scale;
-  const scaledHeight = rect.height * mapView.scale;
-
-  if (mapView.scale <= 1) {
-    mapView.x = 0;
-    mapView.y = 0;
+function initializeMap() {
+  if (!dom.map || !window.L) {
+    if (dom.mapFallback) dom.mapFallback.hidden = false;
     return;
   }
 
-  mapView.x = clamp(mapView.x, rect.width - scaledWidth, 0);
-  mapView.y = clamp(mapView.y, rect.height - scaledHeight, 0);
-}
+  map = L.map(dom.map, {
+    center: AUSTRALIA_CENTER,
+    zoom: 4,
+    minZoom: 3,
+    maxZoom: 18,
+    maxBounds: AUSTRALIA_MAP_BOUNDS,
+    maxBoundsViscosity: 0.65,
+    worldCopyJump: false,
+  });
 
-function setMapTransform() {
-  if (!dom.mapCanvas) return;
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  })
+    .on("tileerror", () => {
+      if (dom.mapFallback) dom.mapFallback.hidden = false;
+    })
+    .addTo(map);
 
-  dom.mapCanvas.style.transform = `translate(${mapView.x}px, ${mapView.y}px) scale(${mapView.scale})`;
+  markerLayer = L.layerGroup().addTo(map);
+  map.fitBounds(AUSTRALIA_MAP_BOUNDS, { padding: [18, 18] });
+
+  setTimeout(() => map.invalidateSize(), 0);
 }
 
 function renderLocationDatabaseCount() {
   if (dom.locationDatabaseCount) {
     dom.locationDatabaseCount.textContent = `${AUSTRALIA_PLACES.length.toLocaleString("en-AU")}`;
   }
+}
+
+function markerIcon(type) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="custom-pin ${type}"></span>`,
+    iconAnchor: [11, 22],
+    iconSize: [22, 22],
+    popupAnchor: [0, -22],
+  });
 }
 
 function renderJobsTable() {
@@ -632,9 +497,9 @@ function emptyRow(message, columns) {
 }
 
 function renderMap() {
-  if (!dom.mapMarkers) return;
+  if (!map || !markerLayer) return;
 
-  dom.mapMarkers.innerHTML = "";
+  markerLayer.clearLayers();
   const markers = [
     ...state.jobs.map((job) => ({
       type: "job",
@@ -650,29 +515,28 @@ function renderMap() {
     })),
   ].filter((marker) => marker.location);
 
-  markers.forEach((marker, index) => {
-    const point = coordinatesToMapPoint(marker.location);
-    const wrap = document.createElement("button");
-    const pin = document.createElement("span");
-    const label = document.createElement("span");
+  const bounds = [];
 
-    wrap.type = "button";
-    wrap.className = "marker-wrap";
-    wrap.style.left = `calc(${point.x}% + ${offsetForStack(index)}px)`;
-    wrap.style.top = `calc(${point.y}% + ${offsetForStack(index + 2)}px)`;
-    wrap.title = `${marker.title} - ${marker.location.label}`;
+  markers.forEach((marker) => {
+    const latLng = [marker.location.lat, marker.location.lng];
+    bounds.push(latLng);
 
-    pin.className = `map-pin ${marker.type}`;
-    label.className = "marker-label";
-    label.innerHTML = `
-      <strong>${escapeHtml(marker.title)}</strong>
-      <span>${marker.type === "job" ? "Job" : "Apartment"} - ${escapeHtml(marker.location.label)}</span>
-      <small>${escapeHtml(marker.detail)}</small>
-    `;
-
-    wrap.append(pin, label);
-    dom.mapMarkers.appendChild(wrap);
+    L.marker(latLng, { icon: markerIcon(marker.type), title: `${marker.title} - ${marker.location.label}` })
+      .bindPopup(
+        `<div class="marker-popup">
+          <strong>${escapeHtml(marker.title)}</strong>
+          <span>${marker.type === "job" ? "Job" : "Apartment"} - ${escapeHtml(marker.location.label)}</span><br />
+          ${escapeHtml(marker.detail)}
+        </div>`
+      )
+      .addTo(markerLayer);
   });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [44, 44], maxZoom: 10 });
+  } else {
+    map.fitBounds(AUSTRALIA_MAP_BOUNDS, { padding: [18, 18] });
+  }
 }
 
 function renderDashboard() {
@@ -823,29 +687,6 @@ function placeToLocation(place) {
     population: place.p || 0,
     feature: place.f,
   };
-}
-
-function coordinatesToMapPoint({ lat, lng }) {
-  const [[minLat, minLng], [maxLat, maxLng]] = AUSTRALIA_MAP_BOUNDS;
-  const [, , width, height] = AUSTRALIA_VIEW_BOX;
-  const minMercator = latitudeToMercator(minLat);
-  const maxMercator = latitudeToMercator(maxLat);
-  const x = ((lng - minLng) / (maxLng - minLng)) * width;
-  const y = ((maxMercator - latitudeToMercator(lat)) / (maxMercator - minMercator)) * height;
-
-  return {
-    x: clamp((x / width) * 100, 0.5, 99.5),
-    y: clamp((y / height) * 100, 0.5, 99.5),
-  };
-}
-
-function offsetForStack(index) {
-  return ((index % 5) - 2) * 6;
-}
-
-function latitudeToMercator(latitude) {
-  const radians = (clamp(latitude, -85, 85) * Math.PI) / 180;
-  return Math.log(Math.tan(Math.PI / 4 + radians / 2));
 }
 
 function average(values) {
