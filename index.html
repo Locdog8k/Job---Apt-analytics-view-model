@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Australia Job & Apartment Analytics</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQ/okWnU7QFKWaV4tc6gSkbSe3Qb1hA="
+      crossorigin=""
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -53,7 +59,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Automatic placement</p>
-              <h2 id="mapTitle">Interactive Australia map</h2>
+              <h2 id="mapTitle">Australia OpenStreetMap</h2>
             </div>
             <div class="legend" aria-label="Map legend">
               <span><i class="legend-dot job-dot"></i>Job</span>
@@ -62,20 +68,15 @@
           </div>
 
           <div class="map-shell">
-            <div class="map-toolbar" aria-label="Map zoom controls">
-              <button id="mapZoomIn" class="map-control" type="button" aria-label="Zoom in">+</button>
-              <button id="mapZoomOut" class="map-control" type="button" aria-label="Zoom out">-</button>
-              <button id="mapReset" class="map-control map-reset" type="button" aria-label="Reset map">Reset</button>
-            </div>
-            <div id="map" class="map-viewport" role="application" aria-label="Offline interactive map of Australia with job and apartment markers">
-              <div id="mapCanvas" class="map-canvas">
-                <svg id="mapSvg" class="australia-plan" viewBox="0 0 1000 760" aria-hidden="true" focusable="false">
-                  <g id="mapPathLayer"></g>
-                </svg>
-                <div class="map-grid" aria-hidden="true"></div>
-                <div id="mapLabels" class="label-layer" aria-hidden="true"></div>
-                <div id="mapMarkers" class="marker-layer" aria-live="polite"></div>
-              </div>
+            <div
+              id="map"
+              class="leaflet-map"
+              role="application"
+              aria-label="OpenStreetMap focused on Australia with job and apartment markers"
+            ></div>
+            <div id="mapFallback" class="map-fallback" hidden>
+              The map needs an internet connection to load OpenStreetMap tiles.
+              Your data and city matching still work locally.
             </div>
           </div>
           <p class="map-note">
@@ -84,7 +85,7 @@
             <strong>Perth WA</strong>. Type the first letters of a city or town
             to choose it from the smart selector. The local database contains
             <strong id="locationDatabaseCount">thousands of</strong> Australian
-            city and town records with latitude/longitude for automatic placement.
+            city and town records with latitude/longitude for automatic map placement.
           </p>
         </section>
 
@@ -144,7 +145,12 @@
       </section>
     </main>
 
-    <script src="data/australia-map.js" defer></script>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+      defer
+    ></script>
     <script src="data/australia-places.js" defer></script>
     <script src="app.js" defer></script>
   </body>

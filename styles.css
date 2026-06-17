@@ -238,189 +238,79 @@ main {
   min-height: 550px;
   border: 1px solid #cfdaec;
   border-radius: 1rem;
-  background:
-    radial-gradient(circle at 60% 44%, rgba(255, 255, 255, 0.92), transparent 18rem),
-    linear-gradient(135deg, #dcecff 0%, #f8fbff 48%, #e9f2ff 100%);
+  background: #dbe8f7;
 }
 
-.map-toolbar {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 5;
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-.map-control {
-  min-width: 2.35rem;
-  min-height: 2.35rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: 0.7rem;
-  background: rgba(18, 52, 91, 0.92);
-  box-shadow: 0 10px 24px rgba(23, 32, 51, 0.22);
-}
-
-.map-control:hover {
-  background: var(--primary-dark);
-}
-
-.map-reset {
-  min-width: auto;
-}
-
-.map-viewport {
-  position: relative;
-  overflow: hidden;
+.leaflet-map {
   width: 100%;
   height: 100%;
   min-height: 550px;
-  touch-action: none;
-}
-
-.map-canvas {
-  position: absolute;
-  inset: 0;
-  transform-origin: 0 0;
-  cursor: grab;
-  will-change: transform;
-}
-
-.map-viewport.is-dragging .map-canvas {
-  cursor: grabbing;
-}
-
-.australia-plan,
-.map-grid,
-.label-layer,
-.marker-layer {
-  position: absolute;
-  inset: 0;
-}
-
-.australia-plan {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 16px 28px rgba(48, 84, 122, 0.18));
-}
-
-.land {
-  fill: #d9ead3;
-  stroke: #8cbf7e;
-  stroke-width: 1.7;
-}
-
-.map-grid {
-  background-image:
-    linear-gradient(rgba(33, 102, 209, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(33, 102, 209, 0.07) 1px, transparent 1px);
-  background-size: 12.5% 12.5%;
-  pointer-events: none;
-}
-
-.marker-layer {
-  z-index: 2;
-}
-
-.label-layer {
   z-index: 1;
-  pointer-events: none;
 }
 
-.map-city-label {
+.map-fallback {
   position: absolute;
-  padding: 0.12rem 0.3rem;
-  border-radius: 0.35rem;
-  background: rgba(255, 255, 255, 0.72);
-  color: #243145;
-  font-size: 0.65rem;
-  font-weight: 800;
-  line-height: 1;
-  text-shadow: 0 1px 0 #fff;
-  transform: translate(0.35rem, -50%);
-  white-space: nowrap;
-}
-
-.marker-wrap {
-  position: absolute;
-  width: 1rem;
-  height: 1rem;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.marker-wrap:hover {
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.map-pin {
-  position: absolute;
+  inset: 1rem;
+  z-index: 500;
   display: grid;
-  width: 1.15rem;
-  height: 1.15rem;
+  place-items: center;
+  padding: 1.5rem;
+  border-radius: 0.9rem;
+  background: rgba(23, 32, 51, 0.88);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.leaflet-container {
+  font: inherit;
+  background: #dbe8f7;
+}
+
+.leaflet-control-attribution {
+  font-size: 0.68rem;
+}
+
+.custom-pin {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
   border: 2px solid #fff;
   border-radius: 50% 50% 50% 0;
-  box-shadow: 0 8px 18px rgba(23, 32, 51, 0.28);
-  transform: translate(-50%, -100%) rotate(-45deg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38);
+  transform: rotate(-45deg);
 }
 
-.map-pin::after {
+.custom-pin::after {
   content: "";
   place-self: center;
-  width: 0.35rem;
-  height: 0.35rem;
+  width: 0.42rem;
+  height: 0.42rem;
   border-radius: 999px;
   background: #fff;
 }
 
-.map-pin.job {
+.custom-pin.job {
   background: var(--job);
 }
 
-.map-pin.apartment {
+.custom-pin.apartment {
   background: var(--apartment);
 }
 
-.marker-label {
-  position: absolute;
-  min-width: max-content;
-  max-width: 14rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: 0.6rem;
-  background: rgba(23, 32, 51, 0.92);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.3;
-  opacity: 0;
-  pointer-events: none;
-  text-align: left;
-  transform: translate(-50%, -2.8rem);
-  transition: opacity 120ms ease;
+.marker-popup {
+  min-width: 13rem;
+  color: var(--text);
 }
 
-.marker-label strong,
-.marker-label span,
-.marker-label small {
+.marker-popup strong {
   display: block;
+  margin-bottom: 0.3rem;
 }
 
-.marker-label small {
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 600;
-}
-
-.marker-wrap:hover .marker-label,
-.marker-wrap:focus-within .marker-label {
-  opacity: 1;
+.marker-popup span {
+  color: var(--muted);
 }
 
 .map-note {
@@ -597,7 +487,7 @@ td textarea:focus {
     min-height: 420px;
   }
 
-  .map-viewport {
+  .leaflet-map {
     min-height: 420px;
   }
 
@@ -606,12 +496,4 @@ td textarea:focus {
     width: 100%;
   }
 
-  .marker-wrap {
-    width: 1rem;
-  }
-
-  .map-control {
-    width: auto;
-    min-width: 2.35rem;
-  }
 }
