@@ -53,7 +53,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Automatic placement</p>
-              <h2 id="mapTitle">Offline Australia plan map</h2>
+              <h2 id="mapTitle">Interactive Australia map</h2>
             </div>
             <div class="legend" aria-label="Map legend">
               <span><i class="legend-dot job-dot"></i>Job</span>
@@ -62,24 +62,20 @@
           </div>
 
           <div class="map-shell">
-            <div id="map" class="flat-map" role="img" aria-label="Offline flat plan of Australia with job and apartment markers">
-              <svg class="australia-plan" viewBox="0 0 1000 760" aria-hidden="true" focusable="false">
-                <path
-                  class="land"
-                  d="M178 420 C116 367 102 287 142 225 C182 162 252 136 330 103 C418 66 524 83 616 111 C724 143 811 192 848 262 C887 337 842 428 784 500 C716 585 632 636 520 637 C401 638 278 584 178 420 Z"
-                />
-                <path
-                  class="land-detail"
-                  d="M404 640 C436 679 507 690 547 658 C524 720 444 724 404 640 Z"
-                />
-                <path class="state-line" d="M532 112 L532 632" />
-                <path class="state-line" d="M701 179 L651 611" />
-                <path class="state-line" d="M532 384 L783 384" />
-                <path class="state-line" d="M182 421 C282 386 419 379 532 384" />
-                <path class="state-line" d="M650 611 C619 568 618 473 651 384" />
-              </svg>
-              <div class="map-grid" aria-hidden="true"></div>
-              <div id="mapMarkers" class="marker-layer" aria-live="polite"></div>
+            <div class="map-toolbar" aria-label="Map zoom controls">
+              <button id="mapZoomIn" class="map-control" type="button" aria-label="Zoom in">+</button>
+              <button id="mapZoomOut" class="map-control" type="button" aria-label="Zoom out">-</button>
+              <button id="mapReset" class="map-control map-reset" type="button" aria-label="Reset map">Reset</button>
+            </div>
+            <div id="map" class="map-viewport" role="application" aria-label="Offline interactive map of Australia with job and apartment markers">
+              <div id="mapCanvas" class="map-canvas">
+                <svg id="mapSvg" class="australia-plan" viewBox="0 0 1000 760" aria-hidden="true" focusable="false">
+                  <g id="mapPathLayer"></g>
+                </svg>
+                <div class="map-grid" aria-hidden="true"></div>
+                <div id="mapLabels" class="label-layer" aria-hidden="true"></div>
+                <div id="mapMarkers" class="marker-layer" aria-live="polite"></div>
+              </div>
             </div>
           </div>
           <p class="map-note">
@@ -148,6 +144,7 @@
       </section>
     </main>
 
+    <script src="data/australia-map.js" defer></script>
     <script src="data/australia-places.js" defer></script>
     <script src="app.js" defer></script>
   </body>
