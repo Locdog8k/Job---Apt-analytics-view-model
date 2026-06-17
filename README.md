@@ -6,7 +6,7 @@ It works as a simple browser-based database with:
 - one editable table for jobs
 - one editable table for apartments
 - automatic map placement from a local Australian city/town database
-- an offline flat plan view of the whole of Australia
+- an offline interactive Australia map with zoom, pan, and reset controls
 - a smart city/town selector that filters as you type
 - a small dashboard for counts, average pay/rent, and best estimated net option
 - JSON export/import for easy backup and editing
@@ -25,9 +25,10 @@ Then open:
 http://localhost:4173
 ```
 
-The map is rendered locally with HTML, CSS, and SVG. It does not need an internet
-connection, a map API, or online map tiles. The city/town matching database is
-local and is included in `data/australia-places.js`.
+The map is rendered locally with HTML, CSS, SVG, and a Natural Earth geometry
+file in `data/australia-map.js`. It does not need an internet connection, a map
+API, or online map tiles. The city/town matching database is local and is
+included in `data/australia-places.js`.
 
 ## How to use
 
@@ -71,7 +72,8 @@ GeoNames Australia dump. Each record stores:
 - GeoNames feature code
 
 The app uses each place's latitude and longitude to calculate its point on the
-offline Australia map. Job and apartment points use different marker colors.
+offline Australia map with the same Web Mercator projection used to draw the
+map. Job and apartment points use different marker colors.
 
 To refresh or expand the database, regenerate `data/australia-places.js` from a
 current GeoNames AU export and keep the same `window.AUSTRALIA_PLACES` format.
@@ -79,3 +81,4 @@ current GeoNames AU export and keep the same `window.AUSTRALIA_PLACES` format.
 ## Attribution
 
 - Location data: GeoNames, licensed under Creative Commons Attribution 4.0.
+- Australia map geometry: Natural Earth public domain data.
